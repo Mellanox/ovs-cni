@@ -1,3 +1,5 @@
+include make/license.mk
+
 REGISTRY ?= ghcr.io/k8snetworkplumbingwg
 IMAGE_TAG ?= latest
 IMAGE_GIT_TAG ?= $(shell git describe --abbrev=8 --tags)
