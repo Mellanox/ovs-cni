@@ -54,6 +54,8 @@ RUN go mod download
 
 COPY . .
 
+RUN ./hack/get_version.sh > .version
+
 RUN mkdir /workdir/bin
 RUN go build -tags no_openssl -o /workdir/bin/ovs ./cmd/plugin
 RUN go build -tags no_openssl -o /workdir/bin/marker ./cmd/marker
