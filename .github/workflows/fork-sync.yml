@@ -23,6 +23,6 @@ jobs:
     uses: Mellanox/cloud-orchestration-reusable-workflows/.github/workflows/fork-sync-reusable.yml@main
     with:
       upstream-owner: k8snetworkplumbingwg
-      default-branch: master
+      default-branch: main
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
