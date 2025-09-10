@@ -20,6 +20,9 @@ RUN mkdir /workdir
 # Support overriding target GOARCH during `make docker-build`
 ARG goarch=
 
+ARG GOPROXY
+ENV GOPROXY=$GOPROXY
+
 # these variable are automatically set during the multiarch build by docker buildx
 ARG TARGETOS
 ARG TARGETARCH
