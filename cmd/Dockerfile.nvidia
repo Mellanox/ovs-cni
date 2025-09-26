@@ -62,9 +62,17 @@ RUN go build -tags no_openssl -o /workdir/bin/marker ./cmd/marker
 RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-producer ./cmd/mirror-producer
 RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-consumer ./cmd/mirror-consumer
 
-FROM nvcr.io/nvidia/doca/doca:3.0.0-base-rt-host
+FROM alpine:3 AS pkgs
+RUN apk add --no-cache findutils
 
-RUN apt update && apt install -y findutils
+FROM nvcr.io/nvidia/distroless/go:v3.1.12-dev
+
+USER 0:0
+
+SHELL ["/busybox/sh", "-c"]
+RUN ln -s /busybox/sh /bin/sh
+
+COPY --from=pkgs /usr/bin/find /usr/bin/find
 
 COPY --from=builder /workdir/.version /.version
 COPY --from=builder /workdir/bin/* /
