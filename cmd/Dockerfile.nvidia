@@ -68,7 +68,7 @@ RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-consumer ./cmd/mirror-c
 FROM alpine:3 AS pkgs
 RUN apk add --no-cache findutils
 
-FROM nvcr.io/nvidia/distroless/go:v3.1.13-dev
+FROM nvcr.io/nvidia/distroless/go:v3.2.0-dev
 
 USER 0:0
 
