@@ -14,6 +14,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+ARG BASE_IMAGE_GO_DISTROLESS_DEV
+
 FROM --platform=$BUILDPLATFORM quay.io/centos/centos:stream9 AS builder
 
 RUN mkdir /workdir
@@ -68,7 +70,7 @@ RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-consumer ./cmd/mirror-c
 FROM alpine:3 AS pkgs
 RUN apk add --no-cache findutils
 
-FROM nvcr.io/nvidia/distroless/go:v3.2.0-dev
+FROM ${BASE_IMAGE_GO_DISTROLESS_DEV:-nvcr.io/nvidia/distroless/go:v3.2.1-dev}
 
 USER 0:0
 
