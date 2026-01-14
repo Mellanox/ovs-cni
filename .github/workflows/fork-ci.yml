@@ -26,9 +26,8 @@ jobs:
       registry-internal: nvcr.io/nvstaging/mellanox
       service-account-username: nvidia-ci-cd
       service-account-email: svc-cloud-orch-gh@nvidia.com
-      components: '[{"name": "ovsCni", "imageName": "ovs-cni-plugin", "Dockerfile": "cmd/Dockerfile.nvidia"}]'
+      components: '[{"name": "ovsCni", "imageName": "ovs-cni-plugin", "dockerfile": "cmd/Dockerfile.nvidia"}]'
     secrets:
       registry-username: ${{ secrets.NVCR_USERNAME }}
       registry-token: ${{ secrets.NVCR_TOKEN }}
       cicd-gh-token: ${{ secrets.GH_TOKEN_NVIDIA_CI_CD }}
-      goproxy: ${{ secrets.GO_PROXY_URL }}
