@@ -1,6 +1,6 @@
 module github.com/k8snetworkplumbingwg/ovs-cni
 
-go 1.25.8
+go 1.25.9
 
 require (
 	dario.cat/mergo v1.0.0
