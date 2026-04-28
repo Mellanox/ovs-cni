@@ -52,8 +52,12 @@ build: format $(patsubst %, build-%, $(COMPONENTS))
 lint: $(GO) $(GOLANGCI)
 	$(GOLANGCI) run
 
-build-%: $(GO)
+build-%: $(GO) build-entrypoint
 	cd cmd/$* && $(GO) fmt && $(GO) vet && GOOS=linux GOARCH=$(GOARCH) $(GO_BUILD_OPTS) $(GO) build $(GO_TAGS)
+
+.PHONY: build-entrypoint
+build-entrypoint: | $(BIN_DIR) ; $(info Building entrypoint...) @ ## Build entrypoint binary
+	$Q GOOS=linux GOARCH=$(GOARCH) $(GO_BUILD_OPTS) $(GO) build -o $(BIN_DIR)/entrypoint $(GO_TAGS) ./cmd/entrypoint/
 
 format: $(GO)
 	$(GO) fmt ./pkg/... ./cmd/...
