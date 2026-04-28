@@ -14,7 +14,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-ARG BASE_IMAGE_GO_DISTROLESS_DEV
+ARG BASE_IMAGE_GO_DISTROLESS
 
 FROM --platform=$BUILDPLATFORM quay.io/centos/centos:stream9 AS builder
 
@@ -66,18 +66,18 @@ RUN go build -tags no_openssl -o /workdir/bin/ovs ./cmd/plugin
 RUN go build -tags no_openssl -o /workdir/bin/marker ./cmd/marker
 RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-producer ./cmd/mirror-producer
 RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-consumer ./cmd/mirror-consumer
+RUN go build -tags no_openssl -o /workdir/bin/entrypoint ./cmd/entrypoint/
 
 FROM alpine:3 AS pkgs
 RUN apk add --no-cache findutils
 
-FROM ${BASE_IMAGE_GO_DISTROLESS_DEV:-nvcr.io/nvidia/distroless/go:v3.2.1-dev}
+FROM ${BASE_IMAGE_GO_DISTROLESS:-nvcr.io/nvidia/distroless/go:v3.2.1}
 
 USER 0:0
-
-SHELL ["/busybox/sh", "-c"]
-RUN ln -s /busybox/sh /bin/sh
 
 COPY --from=pkgs /usr/bin/find /usr/bin/find
 
 COPY --from=builder /workdir/.version /.version
 COPY --from=builder /workdir/bin/* /
+
+ENTRYPOINT ["/entrypoint"]
