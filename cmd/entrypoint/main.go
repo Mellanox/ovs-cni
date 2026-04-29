@@ -43,7 +43,8 @@ func usage() {
 			"\t--cni-bin-dir=%s\n"+
 			"\t--ovs-bin-file=%s\n"+
 			"\t--ovs-mirror-producer-bin-file=%s\n"+
-			"\t--ovs-mirror-consumer-bin-file=%s\n",
+			"\t--ovs-mirror-consumer-bin-file=%s\n"+
+			"\t--no-sleep\n",
 		defaultCNIBinDir, defaultOVSBinFile, ovsMirrorProducerBinFile, ovsMirrorConsumerBinFile)
 }
 
@@ -53,6 +54,7 @@ func run() int {
 	ovsBinFile := fs.String("ovs-bin-file", defaultOVSBinFile, "Source ovs binary path")
 	mirrorProducerBinFile := fs.String("ovs-mirror-producer-bin-file", ovsMirrorProducerBinFile, "Source ovs-mirror-producer binary path")
 	mirrorConsumerBinFile := fs.String("ovs-mirror-consumer-bin-file", ovsMirrorConsumerBinFile, "Source ovs-mirror-consumer binary path")
+	noSleep := fs.Bool("no-sleep", false, "Exit after copying binary without waiting for signal")
 	fs.Usage = usage
 
 	err := fs.Parse(os.Args[1:])
@@ -99,6 +101,11 @@ func run() int {
 			fmt.Fprintf(os.Stderr, "failed to copy %q to %q: %v\n", *bin, destPath, err)
 			return 1
 		}
+	}
+
+	if *noSleep {
+		fmt.Println("OVS CNI binary installed.")
+		return 0
 	}
 
 	fmt.Println("OVS CNI binaries installed, waiting for termination signal.")
