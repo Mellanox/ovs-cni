@@ -48,7 +48,12 @@ RUN dnf install -y wget
 COPY go.mod .
 COPY go.sum .
 
-RUN GO_VERSION=$(sed -En 's/^go +(.*)$/\1/p' go.mod) && \
+RUN GO_MINOR=$(sed -En 's/^go ([0-9]+\.[0-9]+).*/\1/p' go.mod) && \
+    GO_VERSION=$(wget -qO- 'https://go.dev/dl/?mode=json&include=all' | \
+      grep -oE 'go[0-9]+\.[0-9]+\.[0-9]+' | \
+      grep "^go${GO_MINOR}\." | \
+      sort -uV | tail -1 | sed 's/^go//') && \
+    echo "Installing Go ${GO_VERSION}" && \
     wget https://dl.google.com/go/go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz && \
     tar -C /usr/local -xzf go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz && \
     rm go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz
