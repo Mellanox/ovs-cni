@@ -22,7 +22,7 @@ pkg/                    # Core libraries
   utils/                #   Utilities and cache helpers
   testhelpers/          #   Shared test utilities
 tests/                  # E2E/functional tests (require running cluster)
-cluster/                # Local K8s cluster management (kind)
+cluster/                # Local K8s cluster management (kubevirtci)
 hack/                   # Build scripts, CI helpers
 manifests/              # K8s manifest templates
 examples/               # Example deployments and NetworkAttachmentDefinitions
@@ -37,13 +37,14 @@ Go toolchain is auto-installed to `build/_output/bin/go/` by `hack/install-go.sh
 ```bash
 make build              # Format, vet, build all 4 binaries
 make lint               # golangci-lint v2 (config in .golangci.yml)
-make unit-tests          # Unit tests (Ginkgo/Gomega)
-make cni-tests           # CNI plugin tests (run in privileged container with OVS)
-make kubernetes-tests    # E2E tests against a running cluster
-make docker-build        # Container image with all binaries
+make test               # Unit tests (Ginkgo/Gomega) - may need sudo for netns tests
+make functest           # E2E tests against a running cluster
+make docker-build       # Container image with all binaries
+make docker-test        # Run tests inside Docker
 ```
 
 Build individual components: `make build-plugin`, `make build-marker`, etc.
+Test individual packages: `make test-pkg-plugin`, `make test-cmd-marker`, etc.
 
 Binaries output to `cmd/<component>/` (built in-place by `go build`).
 
@@ -60,14 +61,14 @@ Binaries output to `cmd/<component>/` (built in-place by `go build`).
 
 ## Local development cluster
 
-Uses kind with a custom node image (OVS pre-installed) to spin up a local Kubernetes cluster with Multus.
+Uses kubevirtci to spin up a local Kubernetes cluster with Multus pre-installed.
 
 ```bash
-make cluster-up         # Create kind cluster with OVS and Multus
+make cluster-up         # Deploy local K8s cluster
 make cluster-sync       # Build and deploy ovs-cni to the cluster
 make cluster-down       # Tear down cluster
 ./cluster/kubectl.sh    # kubectl with correct kubeconfig
-./cluster/exec.sh <node> -- <command>  # Run command on a cluster node via docker exec
+./cluster/cli.sh ssh node01  # SSH into cluster node
 ```
 
 ## Container image
@@ -84,7 +85,6 @@ make cluster-down       # Tear down cluster
 ## CI
 
 GitHub Actions workflows in `.github/workflows/`:
-- `lint-build.yaml` - Lint, build, unit tests, CNI tests, and Kubernetes e2e tests
 - `image-build-test.yaml` - Build validation on PRs (multi-arch)
 - `image-push-main.yaml` - Push `:latest` on merge to main
 - `image-push-release.yaml` - Push release tags

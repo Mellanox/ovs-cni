@@ -66,16 +66,9 @@ func SettleAddresses(ifName string, timeout time.Duration) error {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			link, err := netlinksafe.LinkByName(ifName)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve link: %v", err)
-			}
-			if link.Attrs().OperState == netlink.OperUp {
-				return fmt.Errorf("link %s still has tentative addresses after %d seconds",
-					ifName,
-					timeout)
-			}
-			return nil
+			return fmt.Errorf("link %s still has tentative addresses after %d seconds",
+				ifName,
+				timeout)
 		}
 
 		time.Sleep(SETTLE_INTERVAL)

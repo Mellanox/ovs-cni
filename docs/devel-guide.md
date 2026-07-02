@@ -25,17 +25,14 @@ make dep
 
 ```shell
 # Run all unit tests
-make unit-tests
+make test
 
-# Run CNI plugin tests (requires OVS, runs in privileged container)
-# Note: may require root privileges
-sudo make cni-tests
+# Run unit tests of a specific package
+make test-cmd-foo
+make test-pkg-bar
 
-# Run Kubernetes e2e tests against a running cluster
-make cluster-up
-make cluster-sync
-make kubernetes-tests
-make cluster-down
+# Some tests might need root privileges, run them with sudo
+sudo --preserve-env make test
 ```
 
 ## Containers
@@ -92,24 +89,30 @@ OVS_CNI_MARKER_IMAGE_VERSION # default latest
 
 ## Local Cluster
 
-This project uses [kind](https://kind.sigs.k8s.io/) with a custom node image
-(OVS pre-installed) to deploy a local cluster.
+This project uses [kubevirtci](https://github.com/kubevirt/kubevirtci) to
+deploy local cluster.
 
 ### Usage
 
 Use following commands to control it.
 
+*note:* Default Provider is one node (master + worker) of kubernetes 1.11.1
+with multus cni plugin.
+
 ```shell
 # Deploy local Kubernetes cluster
 make cluster-up
 
-# Run a command on a cluster node
-./cluster/exec.sh ovs-cni-worker -- ovs-vsctl show
+# SSH to node01 and open interactive shell
+./cluster/cli.sh ssh node01
+
+# SSH to node01 and run command
+./cluster/cli.sh ssh node01 echo 'Hello World'
 
 # Communicate with the Kubernetes cluster using kubectl
 ./cluster/kubectl.sh
 
-# Build project, build images, load them into the cluster and install them
+# Build project, build images, push them to cluster's registry and install them
 make build cluster-sync
 
 # Destroy the cluster

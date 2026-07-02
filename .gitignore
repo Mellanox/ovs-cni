@@ -11,7 +11,7 @@ build/_output
 .version
 
 # local cluster
-.kube/
+_kubevirtci/
 
 # testing
 _out
@@ -21,3 +21,6 @@ cluster/multus-daemonset.yml
 
 # makefile GOPATH
 .gopath/
+
+# makefile bin dir
+bin/

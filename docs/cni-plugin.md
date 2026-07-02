@@ -166,5 +166,5 @@ installed and its service running. Since those tests configure host networking,
 they must be executed by root.
 
 ```shell
-make cni-tests
+sudo --preserve-env make test-pkg-plugin
 ```

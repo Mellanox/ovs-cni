@@ -16,5 +16,6 @@
 
 SCRIPTS_PATH="$(dirname "$(realpath "$0")")"
 source ${SCRIPTS_PATH}/cluster.sh
+cluster::install
 
-kubectl --kubeconfig "$(cluster::kubeconfig)" "$@"
+$(cluster::path)/cluster-up/kubectl.sh "$@"

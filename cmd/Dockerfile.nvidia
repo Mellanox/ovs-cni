@@ -1,0 +1,88 @@
+# Copyright 2025 ovs-cni authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BASE_IMAGE_GO_DISTROLESS
+
+FROM --platform=$BUILDPLATFORM quay.io/centos/centos:stream9 AS builder
+
+RUN mkdir /workdir
+# Support overriding target GOARCH during `make docker-build`
+ARG goarch=
+
+ARG GOPROXY
+ENV GOPROXY=$GOPROXY
+
+# these variable are automatically set during the multiarch build by docker buildx
+ARG TARGETOS
+ARG TARGETARCH
+ENV TARGETOS=${TARGETOS:-linux}
+ENV TARGETARCH=${TARGETARCH:-amd64}
+
+ARG BUILDOS
+ARG BUILDARCH
+ENV BUILDOS=${BUILDOS:-linux}
+ENV BUILDARCH=${BUILDARCH:-amd64}
+
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${goarch:-$TARGETARCH}
+ENV CGO_ENABLED=0
+ENV GOFLAGS=-mod=vendor
+
+WORKDIR /workdir
+
+RUN dnf install -y wget
+
+COPY go.mod .
+COPY go.sum .
+
+RUN GO_MINOR=$(sed -En 's/^go ([0-9]+\.[0-9]+).*/\1/p' go.mod) && \
+    GO_VERSION=$(wget -qO- 'https://go.dev/dl/?mode=json&include=all' | \
+      grep -oE 'go[0-9]+\.[0-9]+\.[0-9]+' | \
+      grep "^go${GO_MINOR}\." | \
+      sort -uV | tail -1 | sed 's/^go//') && \
+    echo "Installing Go ${GO_VERSION}" && \
+    wget https://dl.google.com/go/go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz && \
+    rm go${GO_VERSION}.${BUILDOS}-${BUILDARCH}.tar.gz
+
+ENV PATH=/usr/local/go/bin:$PATH
+
+RUN go mod download
+
+COPY . .
+
+RUN ./hack/get_version.sh > .version
+
+RUN mkdir /workdir/bin
+RUN go build -tags no_openssl -o /workdir/bin/ovs ./cmd/plugin
+RUN go build -tags no_openssl -o /workdir/bin/marker ./cmd/marker
+RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-producer ./cmd/mirror-producer
+RUN go build -tags no_openssl -o /workdir/bin/ovs-mirror-consumer ./cmd/mirror-consumer
+RUN go build -tags no_openssl -o /workdir/bin/entrypoint ./cmd/entrypoint/
+
+FROM alpine:3 AS pkgs
+RUN apk add --no-cache findutils
+
+FROM ${BASE_IMAGE_GO_DISTROLESS:-nvcr.io/nvidia/distroless/go:v3.2.1}
+
+USER 0:0
+
+COPY --from=pkgs /usr/bin/find /usr/bin/find
+
+COPY --from=builder /workdir/.version /.version
+COPY --from=builder /workdir/bin/* /
+
+ENTRYPOINT ["/entrypoint"]
