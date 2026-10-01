@@ -21,7 +21,7 @@ PACKAGE = ovs-cni
 OCI_BIN ?= $(shell if podman ps >/dev/null 2>&1; then echo podman; elif docker ps >/dev/null 2>&1; then echo docker; fi)
 REPO_PATH = $(ORG_PATH)/$(PACKAGE)
 BASE = $(GOPATH)/src/$(REPO_PATH)
-PKGS = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "$(PACKAGE)/vendor/" | grep -v "$(PACKAGE)/tests/cluster" | grep -v "$(PACKAGE)/tests/node"))
+PKGS = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "$(PACKAGE)/vendor/" | grep -v "$(PACKAGE)/tests/kubernetes/cluster" | grep -v "$(PACKAGE)/tests/kubernetes/node" | grep -v "$(PACKAGE)/tests/kubernetes/cmd"))
 V = 0
 Q = $(if $(filter 1,$V),,@)
 TLS_SETTING := $(if $(filter $(OCI_BIN),podman),--tls-verify=false,)
@@ -36,12 +36,18 @@ all: lint build
 
 GO := $(GOBIN)/go
 
+install-go: $(GO)
+
 $(GO):
 	hack/install-go.sh $(BIN_DIR)
 
 $(BASE): ; $(info  setting GOPATH...)
 	@mkdir -p $(dir $@)
 	@ln -sf $(CURDIR) $@
+
+KIND = $(BIN_DIR)/kind
+$(KIND):
+	hack/install-kind.sh $(BIN_DIR)
 
 GOLANGCI = $(GOBIN)/golangci-lint
 $(GOBIN)/golangci-lint: $(GO) | $(BASE) ; $(info  building golangci-lint...)
@@ -52,12 +58,8 @@ build: format $(patsubst %, build-%, $(COMPONENTS))
 lint: $(GO) $(GOLANGCI)
 	$(GOLANGCI) run
 
-build-%: $(GO) build-entrypoint
+build-%: $(GO)
 	cd cmd/$* && $(GO) fmt && $(GO) vet && GOOS=linux GOARCH=$(GOARCH) $(GO_BUILD_OPTS) $(GO) build $(GO_TAGS)
-
-.PHONY: build-entrypoint
-build-entrypoint: | $(BIN_DIR) ; $(info Building entrypoint...) @ ## Build entrypoint binary
-	$Q GOOS=linux GOARCH=$(GOARCH) $(GO_BUILD_OPTS) $(GO) build -o $(BIN_DIR)/entrypoint $(GO_TAGS) ./cmd/entrypoint/
 
 format: $(GO)
 	$(GO) fmt ./pkg/... ./cmd/...
@@ -73,19 +75,26 @@ build-host-local-plugin:
 		rm -rf plugins; \
 	fi
 
-test: $(GO) build-host-local-plugin
+unit-tests: $(GO)
 	$(GO) test -mod=readonly ./cmd/... ./pkg/... -v --ginkgo.v
 
-docker-test:
-	hack/test-dockerized.sh
+cni-tests: $(GO)
+	$(OCI_BIN) build -t ovs-cni-cni-tests -f tests/cni/Containerfile tests/cni/
+	$(OCI_BIN) run --rm --privileged \
+		-v /lib/modules:/lib/modules \
+		-v $(CURDIR):/src:z \
+		-w /src \
+		ovs-cni-cni-tests \
+		build/_output/bin/go/bin/go test -p 1 -mod=readonly ./tests/cni/... -v --ginkgo.v
 
-test-%: $(GO) build-host-local-plugin
-	$(GO) test ./$(subst -,/,$*)/... -v --ginkgo.v
-
-functest: $(GO)
+kubernetes-tests: $(GO)
 	GO=$(GO) hack/functests.sh
 
 docker-build:
+	hack/get_version.sh > .version
+	$(OCI_BIN) build --build-arg goarch=${GOARCH} -t ${REGISTRY}/ovs-cni-plugin:${IMAGE_TAG} -f ./cmd/Dockerfile .
+
+docker-build-nvidia:
 	hack/get_version.sh > .version
 	$(OCI_BIN) build --build-arg goarch=${GOARCH} -t ${REGISTRY}/ovs-cni-plugin:${IMAGE_TAG} -f ./cmd/Dockerfile.nvidia .
 
@@ -100,13 +109,13 @@ dep: $(GO)
 manifests:
 	./hack/build-manifests.sh
 
-cluster-up:
+cluster-up: $(KIND)
 	./cluster/up.sh
 
-cluster-down:
+cluster-down: $(KIND)
 	./cluster/down.sh
 
-cluster-sync: build
+cluster-sync: build $(KIND)
 	./cluster/sync.sh
 
-.PHONY: build format test docker-build docker-push dep clean-dep manifests cluster-up cluster-down cluster-sync lint
+.PHONY: build format unit-tests cni-tests kubernetes-tests docker-build docker-build-nvidia docker-push dep manifests cluster-up cluster-down cluster-sync lint install-go
