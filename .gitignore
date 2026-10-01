@@ -3,6 +3,7 @@ cmd/marker
 cmd/plugin
 cmd/mirror-consumer
 cmd/mirror-producer
+cmd/entrypoint/entrypoint
 
 # Temporary build files
 build/_output
@@ -11,7 +12,7 @@ build/_output
 .version
 
 # local cluster
-_kubevirtci/
+.kube/
 
 # testing
 _out
@@ -22,5 +23,5 @@ cluster/multus-daemonset.yml
 # makefile GOPATH
 .gopath/
 
-# makefile bin dir
+# license tooling installed by make/license.mk
 bin/
