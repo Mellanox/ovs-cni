@@ -147,7 +147,9 @@ var _ = Describe("run", func() {
 
 	It("copies the binary to --cni-bin-dir and exits 0 on SIGTERM", func() {
 		binContent := []byte("#!/bin/sh\necho hello")
-		src := writeTempFile(tmpDir, "ovs", binContent, 0o755)
+		ovsSrc := writeTempFile(tmpDir, "ovs", binContent, 0o755)
+		producerSrc := writeTempFile(tmpDir, "ovs-mirror-producer", binContent, 0o755)
+		consumerSrc := writeTempFile(tmpDir, "ovs-mirror-consumer", binContent, 0o755)
 		destDir, err := os.MkdirTemp("", "entrypoint-dest-*")
 		Expect(err).NotTo(HaveOccurred())
 		DeferCleanup(os.RemoveAll, destDir)
@@ -158,9 +160,9 @@ var _ = Describe("run", func() {
 
 		proc := exec.Command(entrypointBin,
 			"--cni-bin-dir="+destDir,
-			"--ovs-bin-file="+src,
-			"--ovs-mirror-producer-bin-file="+src,
-			"--ovs-mirror-consumer-bin-file="+src,
+			"--ovs-bin-file="+ovsSrc,
+			"--ovs-mirror-producer-bin-file="+producerSrc,
+			"--ovs-mirror-consumer-bin-file="+consumerSrc,
 		)
 		proc.Stdout = GinkgoWriter
 		proc.Stderr = GinkgoWriter
